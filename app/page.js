@@ -4,6 +4,7 @@ import { Button, TextField,Alert } from "@mui/material";
 import { useEffect, useState } from "react";
 import { loginRequest } from "@/requests/loginRequest";
 import {getSession, signIn} from "next-auth/react";
+import Link from "next/link";
 
 export default function Home() {
   const [user, setUser] = useState({});
@@ -91,7 +92,7 @@ export default function Home() {
           >
             Log In
           </Button>
-          <a href="/register">Register</a>
+          <Link href="/register">Register</Link>
         </Grid>
       </Grid>
     </form>
