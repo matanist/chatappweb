@@ -31,10 +31,15 @@ export default function Page() {
       setUsersAndGroups([...usersAndGroups,{id:value.value, name:value.label, type:value.type, isActive:true}]);
     }
   }
-  function searchChanged(e) {
+  async function searchChanged(e) {
     const value = e.target.value;
     //TODO: Aranan kullanıcıları api'den çekip getirecek.
-    setSearchedUsersAndGroups([{label:"Fatih", value:1, type:"U"}, {label:"AileGrubu", value:2, type:"G"}]);
+    await fetch(`/api/users?name=${value}`)
+    .then((res)=>res.json())
+    .then(data=>setSearchedUsersAndGroups(data))
+    .catch(err=>console.error(err))
+    //setSearchedUsersAndGroups([{label:"Fatih", value:1, type:"U"}, {label:"AileGrubu", value:2, type:"G"}]);
+
   }
   function boxClicked(item){
     const newUsersAndGroups = usersAndGroups.map((x)=>{
