@@ -2,18 +2,64 @@
 import Grid from "@mui/material/Unstable_Grid2";
 import { getSession, signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
+import { HubConnectionBuilder } from "@microsoft/signalr";
 import styles from "./styles.module.css";
-import { Autocomplete, Divider, Stack, TextField, Box, AppBar, Toolbar, Typography, IconButton, Menu, MenuItem } from "@mui/material";
+import {
+  Autocomplete,
+  Divider,
+  Stack,
+  TextField,
+  Box,
+  AppBar,
+  Toolbar,
+  Typography,
+  IconButton,
+  Menu,
+  MenuItem,
+} from "@mui/material";
 import { AccountCircle } from "@mui/icons-material";
 export default function Page() {
   const session = getSession();
   const [searchedUsersAndGroups, setSearchedUsersAndGroups] = useState([]);
   const [usersAndGroups, setUsersAndGroups] = useState([]);
   const [anchorEl, setAnchorEl] = useState(null);
+  const [connection, setConnection] = useState(null);
+
+  function startConnection(apiToken) {
+    const connection = new HubConnectionBuilder()
+      .withUrl("http://localhost:5246/chathub", {
+        accessTokenFactory: () => apiToken,
+      })
+      .build();
+
+    connection
+      .start()
+      .then(() => {
+        console.log(
+          "Connection started! Connection:" + connection.connectionId
+        );
+        setConnection(connection);
+      })
+      .catch((err) => console.error("Hata...." + err));
+
+    connection.on("ReceiveMessageFromAll", (user, message) => {
+      console.log(`Message from All:${message}`);
+    });
+    connection.on("ReceiveMessageFromUser", (user, message) => {
+      console.log(`Message from User:${user}:${message}`);
+    });
+    connection.on("ReceiveMessageFromGroup", (user, message) => {
+      console.log(`Message from Group:${user}:${message}`);
+    });
+    connection.onclose(() => {
+      console.log("Connection Closed");
+    });
+  }
   useEffect(() => {
     session.then((s) => {
       if (s) {
         console.log(s);
+        startConnection(s.user.apiToken);
       } else {
         location.href = "/";
       }
@@ -26,45 +72,56 @@ export default function Page() {
   }, []);
   function autoCompleteOnChanged(e, value) {
     //console.log("autoCC", value);
-    //TODO: Daha önce eklenmiş ise tekrar eklenmesin. 
-    if(value){
-      setUsersAndGroups([...usersAndGroups,{id:value.value, name:value.label, type:value.type, isActive:true}]);
+    //TODO: Daha önce eklenmiş ise tekrar eklenmesin.
+    if (value) {
+      setUsersAndGroups([
+        ...usersAndGroups,
+        {
+          id: value.value,
+          name: value.label,
+          type: value.type,
+          isActive: true,
+        },
+      ]);
     }
   }
   async function searchChanged(e) {
     const value = e.target.value;
-    //TODO: Aranan kullanıcıları api'den çekip getirecek.
     await fetch(`/api/users?name=${value}`)
-    .then((res)=>res.json())
-    .then(data=>setSearchedUsersAndGroups(data))
-    .catch(err=>console.error(err))
+      .then((res) => res.json())
+      .then((data) => setSearchedUsersAndGroups(data))
+      .catch((err) => console.error(err));
     //setSearchedUsersAndGroups([{label:"Fatih", value:1, type:"U"}, {label:"AileGrubu", value:2, type:"G"}]);
-
   }
-  function boxClicked(item){
-    const newUsersAndGroups = usersAndGroups.map((x)=>{
-      if(x.id===item.id){
-        x.isActive=true;
-      }
-      else{
+  function boxClicked(item) {
+    const newUsersAndGroups = usersAndGroups.map((x) => {
+      if (x.id === item.id) {
+        x.isActive = true;
+      } else {
         x.isActive = false;
       }
       return x;
-    })
+    });
     setUsersAndGroups(newUsersAndGroups);
   }
-  function handleMenu(e){
+  function handleMenu(e) {
     setAnchorEl(e.currentTarget);
   }
-  function handleClose(){
+  function handleClose() {
     setAnchorEl(null);
   }
-  function handleExit(e){
-    signOut({callbackUrl:"/", redirect:true});
+  function handleExit(e) {
+    signOut({ callbackUrl: "/", redirect: true });
+  }
+  function testMessageHandler() {
+    connection
+      .invoke("SendMessageToUser", "mehmet.baytar", "Merhaba Fatih")
+      .then(() => console.log("Message Sent!"))
+      .catch((err) => console.error(err));
   }
   return (
     <Grid container height={"100vh"}>
-      <Grid xl={2} borderRadius={1} className={styles.leftPanelGrid}>
+      <Grid xs={3} borderRadius={1} className={styles.leftPanelGrid}>
         <Grid margin={1}>
           <Autocomplete
             disablePortal
@@ -106,24 +163,36 @@ export default function Page() {
           ))}
         </Grid>
       </Grid>
-      <Grid xl={10} border="solid" borderRadius={2}>
+      <Grid xs={9} border="solid" borderRadius={2}>
         <Grid>
           <AppBar position="static">
             <Toolbar>
-              <Typography variant="h6" component="div" sx={{flexGrow:1}}>
+              <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
                 Menü
               </Typography>
-              <IconButton size="large" aria-label="account of current user" aria-contols="menu-appbar" aria-haspopup="true" onClick={handleMenu}>
+              <IconButton
+                size="large"
+                aria-label="account of current user"
+                aria-contols="menu-appbar"
+                aria-haspopup="true"
+                onClick={handleMenu}
+              >
                 <AccountCircle />
               </IconButton>
-              <Menu id="menu-appbar" anchorOrigin={{vertical:"top", horizontal:"right"}}
-              keepMounted
-              transformOrigin={{vertical:"top", horizontal:"top"}}
-              anchorEl={anchorEl}
-              open={Boolean(anchorEl)}
-              onClose={handleClose}
-              role="menu" 
-              style={{top:"50px"}}>
+              <Menu
+                id="menu-appbar"
+                anchorOrigin={{ vertical: "top", horizontal: "right" }}
+                keepMounted
+                transformOrigin={{ vertical: "top", horizontal: "top" }}
+                anchorEl={anchorEl}
+                open={Boolean(anchorEl)}
+                onClose={handleClose}
+                role="menu"
+                style={{ top: "50px" }}
+              >
+                <MenuItem onClick={testMessageHandler}>
+                  Test Mesajı Gönder
+                </MenuItem>
                 <MenuItem onClick={handleExit}>Çıkış</MenuItem>
               </Menu>
             </Toolbar>
