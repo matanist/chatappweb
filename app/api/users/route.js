@@ -17,7 +17,7 @@ export async function GET(req){
 
     const data = await result.json();
     const list = data.data.map((u)=>{
-        return {label:u.fullName, value:u.id, type:"U"}
+        return {label:u.fullName, value:u.id, type:"U", username:u.username}
     });
     return NextResponse.json(list);
 }

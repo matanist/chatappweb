@@ -19,6 +19,7 @@ export const authOptions = {
                     });
                     if(response.data.statusCode === 200){
                         user.apiToken = response.data.data;
+                        user.username = credentials.username;
                         return user;
                     }
                     else{
@@ -40,12 +41,14 @@ export const authOptions = {
             if(user){
                 token.id = user.id;
                 token.apiToken = user.apiToken;
+                token.username = user.username;
             }
             return token;
         },
         async session({session, token}){
             session.user.id = token.id;
             session.user.apiToken = token.apiToken;
+            session.user.username = token.username;
             return session;
         }
     }

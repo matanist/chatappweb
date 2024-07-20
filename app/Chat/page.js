@@ -16,6 +16,7 @@ import {
   IconButton,
   Menu,
   MenuItem,
+  Button,
 } from "@mui/material";
 import { AccountCircle } from "@mui/icons-material";
 export default function Page() {
@@ -24,6 +25,11 @@ export default function Page() {
   const [usersAndGroups, setUsersAndGroups] = useState([]);
   const [anchorEl, setAnchorEl] = useState(null);
   const [connection, setConnection] = useState(null);
+  const [connectedUser, setConnectedUser] = useState(null);
+  const [selectedUser, setSelectedUser] = useState(null);
+
+  const [chatHistory, setChatHistory] = useState([]);
+  const [message, setMessage] = useState("");
 
   function startConnection(apiToken) {
     const connection = new HubConnectionBuilder()
@@ -58,7 +64,8 @@ export default function Page() {
   useEffect(() => {
     session.then((s) => {
       if (s) {
-        console.log(s);
+        //console.log(s);
+        setConnectedUser(s.user);
         startConnection(s.user.apiToken);
       } else {
         location.href = "/";
@@ -81,6 +88,7 @@ export default function Page() {
           name: value.label,
           type: value.type,
           isActive: true,
+          username: value.username,
         },
       ]);
     }
@@ -102,7 +110,9 @@ export default function Page() {
       }
       return x;
     });
+    setSelectedUser(item);
     setUsersAndGroups(newUsersAndGroups);
+    console.log("Selected User", item);
   }
   function handleMenu(e) {
     setAnchorEl(e.currentTarget);
@@ -118,6 +128,17 @@ export default function Page() {
       .invoke("SendMessageToUser", "mehmet.baytar", "Merhaba Fatih")
       .then(() => console.log("Message Sent!"))
       .catch((err) => console.error(err));
+  }
+  function messageSendHandler() {
+    // console.log("SelectedUser", selectedUser);
+    // console.log("Message", message);
+    if (!selectedUser) return;
+    const user = selectedUser?.username;
+    connection
+      .invoke("SendMessageToUser", user, message)
+      .then((r) => {})
+      .catch((err) => console.error(err));
+    setMessage("");
   }
   return (
     <Grid container height={"100vh"}>
@@ -168,7 +189,7 @@ export default function Page() {
           <AppBar position="static">
             <Toolbar>
               <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-                Menü
+                Menü {connectedUser && connectedUser.username}
               </Typography>
               <IconButton
                 size="large"
@@ -198,6 +219,51 @@ export default function Page() {
             </Toolbar>
           </AppBar>
         </Grid>
+        {selectedUser && (
+          <Grid>
+            <Grid height="86vh">
+              <Box border="1px solid azure" borderRadius={1}>
+                {chatHistory.map((item, index) => (
+                  <div>//TODO: Şekillendirilecek</div>
+                ))}
+              </Box>
+            </Grid>
+            <Grid
+              container
+              spacing={4}
+              marginX={1}
+              alignItems="center"
+              justifyContent="end"
+            >
+              <Grid xs>
+                <TextField
+                  id="txt-message-send"
+                  label="Mesajınızı yazınız"
+                  variant="outlined"
+                  fullWidth
+                  onChange={(e) => setMessage(e.target.value)}
+                  value={message}
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter") {
+                      messageSendHandler();
+                    }
+                  }}
+                />
+              </Grid>
+              <Grid>
+                <Button
+                  variant="contained"
+                  size="large"
+                  color="primary"
+                  fullWidth
+                  onClick={messageSendHandler}
+                >
+                  Gönder
+                </Button>
+              </Grid>
+            </Grid>
+          </Grid>
+        )}
       </Grid>
     </Grid>
   );
