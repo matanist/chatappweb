@@ -19,6 +19,8 @@ import {
   Button,
 } from "@mui/material";
 import { AccountCircle } from "@mui/icons-material";
+import { useAppDispatch, useAppSelector } from "@/lib/store";
+import { setChatHistory } from "@/lib/features/useSlice";
 export default function Page() {
   const session = getSession();
   const [searchedUsersAndGroups, setSearchedUsersAndGroups] = useState([]);
@@ -28,8 +30,11 @@ export default function Page() {
   const [connectedUser, setConnectedUser] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
 
-  const [chatHistory, setChatHistory] = useState([]);
   const [message, setMessage] = useState("");
+
+  //Redux
+  const dispatch = useAppDispatch();
+  const chatHistoryState = useAppSelector((state) => state.chatHistory);
 
   function startConnection(apiToken) {
     const connection = new HubConnectionBuilder()
@@ -52,6 +57,17 @@ export default function Page() {
       console.log(`Message from All:${message}`);
     });
     connection.on("ReceiveMessageFromUser", (user, message) => {
+      const lsUsername = localStorage.getItem("username");
+      if (lsUsername === user) {
+        //chatHistoryState doldur.
+        dispatch(
+          setChatHistory({
+            id: chatHistoryState.length + 1,
+            type: "R",
+            name: message,
+          })
+        );
+      }
       console.log(`Message from User:${user}:${message}`);
     });
     connection.on("ReceiveMessageFromGroup", (user, message) => {
@@ -102,6 +118,11 @@ export default function Page() {
     //setSearchedUsersAndGroups([{label:"Fatih", value:1, type:"U"}, {label:"AileGrubu", value:2, type:"G"}]);
   }
   function boxClicked(item) {
+    dispatch(
+      setChatHistory({
+        type: "Reset",
+      })
+    );
     const newUsersAndGroups = usersAndGroups.map((x) => {
       if (x.id === item.id) {
         x.isActive = true;
@@ -113,6 +134,7 @@ export default function Page() {
     setSelectedUser(item);
     setUsersAndGroups(newUsersAndGroups);
     console.log("Selected User", item);
+    localStorage.setItem("username", item.username);
   }
   function handleMenu(e) {
     setAnchorEl(e.currentTarget);
@@ -136,7 +158,16 @@ export default function Page() {
     const user = selectedUser?.username;
     connection
       .invoke("SendMessageToUser", user, message)
-      .then((r) => {})
+      .then((r) => {
+        console.log("chatHistoryState",chatHistoryState)
+        dispatch(
+          setChatHistory({
+            id: chatHistoryState.length + 1,
+            type: "S",
+            name: message,
+          })
+        );
+      })
       .catch((err) => console.error(err));
     setMessage("");
   }
@@ -223,8 +254,19 @@ export default function Page() {
           <Grid>
             <Grid height="86vh">
               <Box border="1px solid azure" borderRadius={1}>
-                {chatHistory.map((item, index) => (
-                  <div>//TODO: Şekillendirilecek</div>
+                {chatHistoryState.map((item, index) => (
+                  <Box key={index} margin={1}>
+                    <Stack
+                      spacing={2}
+                      direction="row"
+                      justifyContent={
+                        item.type === "S" ? "flex-end" : "flex-start"
+                      }
+                    >
+                      <h3>{item.type}</h3>
+                      <h4>{item.name}</h4>
+                    </Stack>
+                  </Box>
                 ))}
               </Box>
             </Grid>
