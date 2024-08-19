@@ -61,11 +61,11 @@ export default function Page() {
       if (lsUsername === user) {
         //chatHistoryState doldur.
         dispatch(
-          setChatHistory({
+          setChatHistory([{
             id: chatHistoryState.length + 1,
             type: "R",
             name: message,
-          })
+          }])
         );
       }
       console.log(`Message from User:${user}:${message}`);
@@ -133,7 +133,16 @@ export default function Page() {
     });
     setSelectedUser(item);
     setUsersAndGroups(newUsersAndGroups);
-    console.log("Selected User", item);
+    //console.log("Selected User", item);
+
+//* ChatHistory
+    const isPrivateChat = item.type==="U";
+    fetch(`/api/message?receiverUsername=${item.username}&isPrivateChat=${isPrivateChat}`)
+    .then((res)=>res.json())
+    .then((data)=>{
+      dispatch(setChatHistory(data));
+    }).catch((err)=>console.error(err));
+
     localStorage.setItem("username", item.username);
   }
   function handleMenu(e) {
@@ -161,11 +170,11 @@ export default function Page() {
       .then((r) => {
         console.log("chatHistoryState",chatHistoryState)
         dispatch(
-          setChatHistory({
+          setChatHistory([{
             id: chatHistoryState.length + 1,
             type: "S",
             name: message,
-          })
+          }])
         );
       })
       .catch((err) => console.error(err));
